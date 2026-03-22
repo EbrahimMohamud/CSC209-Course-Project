@@ -1,0 +1,25 @@
+# executables
+a.out
+*.out
+*.exe
+
+# object files
+*.o
+
+# logs
+*.log
+
+# make build file 
+makefile
+
+# editor junk
+*.swp
+*.swo
+*~
+
+# macOS junk
+.DS_Store
+
+# windows
+Thumbs.db
+Desktop.ini
