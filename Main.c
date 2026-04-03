@@ -20,6 +20,7 @@
 //Start: Constant Definitions
 #define MAP_LENGTH 100 
 #define MAP_WIDTH 100
+#define MAX_SNAKE_LENGTH 30
 #define MAX_PLAYERS 5
 #define SERVER_COUNTDOWN 200 // 200 frames in total so with 1 frame per second we get about 3 minutes of game time (Contact me for more info about fps decision) 
 //End: Constant Definitions
@@ -29,8 +30,7 @@
 typedef struct {
     int socket; // Socket for communicating with the player
     int body_length; // Length of the player's snake body
-    int player_head_x_coordinate; // X-coordinate of the player's snake head
-    int player_head_y_coordinate; // Y-coordinate of the player's snake head
+    int player_body[MAX_SNAKE_LENGTH][2]// The head of the snake is represented at index 0
     char direction; // Current direction of the player's snake (e.g., 'U' for up, 'D' for down, 'L' for left, 'R' for right)
     int alive; // Flag to indicate if the player is alive (1) or has been eliminated (0)
 
@@ -39,12 +39,18 @@ typedef struct {
 
 
 //Start: Function Blueprints
-void initialize_game_map(FILE *fp, int game_map[MAP_LENGTH][MAP_WIDTH], int *rows, int *cols); // Prepare the game map according to the the user input
+
+//Ebrahim
+void initialize_game_map(int game_map[MAP_LENGTH][MAP_WIDTH], int rows, int cols); // Prepare the game map according to the the user input
 void initialize_spawn_map(int particle_spawn_map[MAP_LENGTH][MAP_WIDTH], int rows, int cols); // Initialize secondary map for particle and player spawning
+int find_max_fd(Player players[], int player_count); // Find the maximum file descriptor among the player sockets for use in the select function
+
+//Saran
 void spawn_particle(int particle_spawn_map[MAP_LENGTH][MAP_WIDTH], int current_game_map[MAP_LENGTH][MAP_WIDTH], int rows, int cols, int particle_position[2]); // Spawn food particle on the game map according to the empty tiles on the spawn map and return the particle's position through the particle_position parameter
 void spawn_player(int current_game_map[MAP_LENGTH][MAP_WIDTH], int spawn_map[MAP_LENGTH][MAP_WIDTH], int rows, int cols, int player_position[2]); // Spawn a new player on the game map according to the empty tiles on the spawn map and return the player's initial position through the player_position parameter
-void update_both_maps(int current_game_map[MAP_LENGTH][MAP_WIDTH], int spawn_map[MAP_LENGTH][MAP_WIDTH], int x_coordinate, int y_coordinate, char update_type); // Update both the game map and the spawn map according to the update type ("p" for particle spawn, "x" for player spawn, "." for emptying a tile, "o" for snake body spawn)
-int find_max_fd(Player players[], int player_count); // Find the maximum file descriptor among the player sockets for use in the select function
+void update_player_body(Player *player); // Update the player's body coordinates based on the player's current direction and body length
+
+
 //End: Function Blueprints
 
 
@@ -52,7 +58,7 @@ int main(int argc, char **argv) {
 
     //Start: Define Game Variables
     int current_game_map[MAP_LENGTH][MAP_WIDTH]; // "." for free tile, "o" for snake body, "x" for snake head, "s" for food
-    int spawn_map[MAP_LENGTH][MAP_WIDTH]; // 0 for occupied tile, 1 for free tile (used for spawning food and new players)
+    int spawn_map[MAP_LENGTH][MAP_WIDTH]; // 1 for occupied tile, 0 for free tile (used for spawning food and new players)
     int rows = 0;
     int cols = 0;
     int countdown = SERVER_COUNTDOWN; // Countdown for the game loop, decrements every frame and when it reaches 0 the game ends
@@ -175,8 +181,10 @@ int main(int argc, char **argv) {
         for (int i = 0; i < 2; i++) // Spawn 2 food particles on the game map every frame
         {
             spawn_particle(spawn_map, current_game_map, rows, cols, spawn_position); // 
-            update_both_maps(current_game_map, spawn_map, spawn_position[0], spawn_position[1], 'p');
         }
+
+
+        hande plaer moves
 
         
         
