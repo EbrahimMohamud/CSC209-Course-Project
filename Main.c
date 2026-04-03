@@ -2,17 +2,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
 #include <sys/select.h>
 //End: Include Libraries
 
@@ -30,10 +27,9 @@
 typedef struct {
     int socket; // Socket for communicating with the player
     int body_length; // Length of the player's snake body
-    int player_body[MAX_SNAKE_LENGTH][2]// The head of the snake is represented at index 0
-    char direction; // Current direction of the player's snake (e.g., 'U' for up, 'D' for down, 'L' for left, 'R' for right)
+    int player_body[MAX_SNAKE_LENGTH][2]; // The head of the snake is represented at index 0
+    char direction; // Current direction of the player's snake (e.g., 'W' for up, 'S' for down, 'A' for left, 'D' for right)
     int alive; // Flag to indicate if the player is alive (1) or has been eliminated (0)
-
 } Player;
 // End: Player Structure Definition
 
@@ -44,11 +40,17 @@ typedef struct {
 void initialize_game_map(int game_map[MAP_LENGTH][MAP_WIDTH], int rows, int cols); // Prepare the game map according to the the user input
 void initialize_spawn_map(int particle_spawn_map[MAP_LENGTH][MAP_WIDTH], int rows, int cols); // Initialize secondary map for particle and player spawning
 int find_max_fd(Player players[], int player_count); // Find the maximum file descriptor among the player sockets for use in the select function
+// + Client Side
+
+
 
 //Saran
 void spawn_particle(int particle_spawn_map[MAP_LENGTH][MAP_WIDTH], int current_game_map[MAP_LENGTH][MAP_WIDTH], int rows, int cols, int particle_position[2]); // Spawn food particle on the game map according to the empty tiles on the spawn map and return the particle's position through the particle_position parameter
 void spawn_player(int current_game_map[MAP_LENGTH][MAP_WIDTH], int spawn_map[MAP_LENGTH][MAP_WIDTH], int rows, int cols, int player_position[2]); // Spawn a new player on the game map according to the empty tiles on the spawn map and return the player's initial position through the player_position parameter
 void update_player_body(Player *player); // Update the player's body coordinates based on the player's current direction and body length
+
+//Eren
+void print_game_map(int game_map[MAP_LENGTH][MAP_WIDTH], int rows, int cols); // Print the current state of the game map to the players
 
 
 //End: Function Blueprints
@@ -59,16 +61,21 @@ int main(int argc, char **argv) {
     //Start: Define Game Variables
     int current_game_map[MAP_LENGTH][MAP_WIDTH]; // "." for free tile, "o" for snake body, "x" for snake head, "s" for food
     int spawn_map[MAP_LENGTH][MAP_WIDTH]; // 1 for occupied tile, 0 for free tile (used for spawning food and new players)
-    int rows = 0;
-    int cols = 0;
+    int rows = MAP_WIDTH;
+    int cols = MAP_LENGTH;
     int countdown = SERVER_COUNTDOWN; // Countdown for the game loop, decrements every frame and when it reaches 0 the game ends
 
-    Player players[MAX_PLAYERS]; // Array to store player information
+
+    Player player1 = {-1, 0, {{0, 0}}, 'D', 0};
+    Player player2 = {-1, 0, {{0, 0}}, 'D', 0}; 
+    Player player3 = {-1, 0, {{0, 0}}, 'D', 0}; 
+    Player player4 = {-1, 0, {{0, 0}}, 'D', 0}; 
+    Player player5 = {-1, 0, {{0, 0}}, 'D', 0};
+
+    Player players[MAX_PLAYERS]={player1, player2, player3, player4, player5}; // Array to store player information
     int player_count = 0;
     
     int spawn_position[2] = {0, 0}; // Array to store the initial position of a new spawn (player or food particle), spawn_position[0] is the x-coordinate and spawn_position[1] is the y-coordinate
-
-    FILE *fp = NULL;
     //End: Define Game Variables
 
 
@@ -99,10 +106,6 @@ int main(int argc, char **argv) {
     }
     //End: Create Server Socket
 
-    //Start: Initialize File Descriptor Set for Player Action Requests
-    fd_set player_move_fds;
-    FD_ZERO(&player_move_fds);
-    //End: Initialize File Descriptor Set for Player Action Requests
 
     //Start: Initialize Time Val For Select Function
     struct timeval timeout;
@@ -110,25 +113,9 @@ int main(int argc, char **argv) {
     timeout.tv_usec = 0; // Set the microseconds part of the timeout to 0
     //End: Initialize Time Val For Select Function
 
-    
-    //Start: Handle Server Manager Input
-    if(argc == 1) {
-        fp = stdin; // Read the game map features from stdin
-    } else if (argc == 2) {
-        fp = fopen(argv[1], "r"); // Read the game map features from the file named in argv[1]
-        if(fp == NULL) {
-            fprintf(stderr, "Error: could not open %s\n", argv[1]);
-            exit(1);
-        }
-    } else {
-        fprintf(stderr, "Usage: Slither.io Usage: ./executable_program_name [board_file]\n");
-        exit(1);
-    }
-    //End: Handle Server Manager Input
-
 
     //Start: Prepare Game Setup
-    initialize_game_map(fp, current_game_map, &rows, &cols);
+    initialize_game_map(current_game_map, rows, cols);
     initialize_spawn_map(spawn_map, rows, cols);
     //End: Prepare Game Setup
 
@@ -136,15 +123,20 @@ int main(int argc, char **argv) {
     //Start Game Loop
     while (countdown != 0){
 
+        //Start: Create File Descriptor Set for Player Join Requests
+        fd_set join_request_fds;
+        FD_ZERO(&join_request_fds);
+        FD_SET(listen_socket, &join_request_fds); // Add the listening socket to the file descriptor set so we can monitor player join requests
+        //End: Create File Descriptor Set for Player Join Requests
+
+        //Start: Create File Descriptor Set for Player Action Requests
+        fd_set player_move_fds;
+        FD_ZERO(&player_move_fds);
+        //End: Create File Descriptor Set for Player Action Requests
+
 
         //Start: Handle Player Connections
         if (player_count < MAX_PLAYERS){
-
-                //Start: Create File Descriptor Set for Player Join Requests
-                fd_set join_request_fds;
-                FD_ZERO(&join_request_fds);
-                FD_SET(listen_socket, &join_request_fds); // Add the listening socket to the file descriptor set so we can monitor player join requests
-                //End: Create File Descriptor Set for Player Join Requests
 
             if (select(listen_socket + 1, &join_request_fds, NULL, NULL, &timeout) < 0){ // Monitor the listening socket for incoming connections
                 perror("select error");
@@ -161,15 +153,24 @@ int main(int argc, char **argv) {
                 }
 
                 spawn_player(current_game_map, spawn_map, rows, cols, spawn_position); // Spawn the new player on the game map and get the player's initial position
-                update_both_maps(current_game_map, spawn_map, spawn_position[0], spawn_position[1], 'x'); // Update both the game map and the spawn map to reflect the new player's position
 
                 // Initialize the new player's information
-                players[player_count].socket = new_player_socket;
-                players[player_count].body_length = 1;
-                players[player_count].player_head_x_coordinate = spawn_position[0]; // Set the player's initial x-coordinate to the x-coordinate of the spawn position
-                players[player_count].player_head_y_coordinate = spawn_position[1]; // Set the player's initial y-coordinate to the y-coordinate of the spawn position
-                players[player_count].direction = 'R'; // By default, the player's snake will start moving to the right 
-                players[player_count].alive = 1; // Set the player's alive status to 1 (alive)
+
+                int player_to_replace = 0;
+                for (int i = 0; i < MAX_PLAYERS; i++){
+                    if (players[i].socket == -1){
+                        player_to_replace = i; // Store the index of the player slot that we will reuse for the new player
+                        break; // Break out of the loop after finding the first empty slot
+                    }
+                }
+
+
+                players[player_to_replace].socket = new_player_socket;
+                players[player_to_replace].body_length = 1;
+                players[player_to_replace].player_body[0][0] = spawn_position[0]; // Set the x-coordinate of the player's snake head to the x-coordinate of the spawn position
+                players[player_to_replace].player_body[0][1] = spawn_position[1]; // Set the y-coordinate of the player's snake head to the y-coordinate of the spawn position
+                players[player_to_replace].direction = 'D'; // By default, the player's snake will start moving to the right 
+                players[player_to_replace].alive = 1; // Set the player's alive status to 1 (alive)
 
                 player_count++; // Increment the player count
 
@@ -178,27 +179,55 @@ int main(int argc, char **argv) {
         }
         //End: Handle Player Connections
 
-        for (int i = 0; i < 2; i++) // Spawn 2 food particles on the game map every frame
-        {
-            spawn_particle(spawn_map, current_game_map, rows, cols, spawn_position); // 
+
+        //Start: Add Player Sockets to File Descriptor
+        for (int i = 0; i < MAX_PLAYERS; i++){
+            if (players[i].socket >= 0){ 
+                FD_SET(players[i].socket, &player_move_fds); // Add each player's socket to the file descriptor set for monitoring player action requests
+        }
+        }
+        //End: Add Player Sockets to File Descriptor
+
+
+        // Start: Handle Player Moves
+        if (select(find_max_fd(players, MAX_PLAYERS) + 1, &player_move_fds, NULL, NULL, &timeout) < 0){
+            perror("select error");
+            exit(1);
         }
 
+        for (int i = 0; i < MAX_PLAYERS; i++){
+            if (players[i].socket >= 0){ // If the player's socket is valid (greater than 0)
+            if (FD_ISSET(players[i].socket, &player_move_fds)){ // If there is an incoming action request from the player
+                char player_move = ' '; // Variable to store the player's move (e.g., 'W' for up, 'S' for down, 'A' for left, 'D' for right)
+                if(read(players[i].socket, &player_move, sizeof(char)) > 0){ // Read the player's move from the socket
+                    players[i].direction = player_move; // Update the player's direction based on the received move
+                    update_player_body(&players[i]); // Update the player's body coordinates based on the new direction and current body length, this will also handle the player's movement and check for collisions with food particles and other players (if there is a collision with a food particle, the player's body length will increase by 1, if there is a collision with another player, the player will be eliminated and alive status will be set to 0 and player count will be decremented by 1)
+                }
+                    else{ // If there was an error reading from the socket, we can assume the player has disconnected
+                    close(players[i].socket); // Close the player's socket
+                    players[i].socket = -1; // Set the player's socket to -1 (invalid socket)
+                    players[i].alive = 0; // Set the player's alive status to 0 (disconnected/eliminated)
+                    update_player_body(&players[i]); // Update the player's body to reflect the disconnection (e.g., remove the player's snake from the game map)
+                    player_count--; // Decrement the player count
+                }
+            }
 
-        hande plaer moves
+        }
+        }
+        // End: Handle Player Moves
 
         
-        
+        //Start: Spawn Food
+        for (int i = 0; i < 2; i++){
+            spawn_particle(spawn_map, current_game_map, rows, cols, spawn_position);
+        }
+        //End: Spawn Food
 
-
-        
-
-
-
-
-
-
-countdown--;
-}
-
+        print_game_map(current_game_map, rows, cols); // Print the current state of the game map to the players
+    
+    countdown--;
+    sleep(1);
+    }
+    // End: Game Loop
 return 0;
 }
