@@ -15,11 +15,11 @@
 
 
 //Start: Constant Definitions
-#define MAP_LENGTH 100 
+#define MAP_LENGTH 100
 #define MAP_WIDTH 100
 #define MAX_SNAKE_LENGTH 30
 #define MAX_PLAYERS 5
-#define SERVER_COUNTDOWN 200 // 200 frames in total so with 1 frame per second we get about 3 minutes of game time (Contact me for more info about fps decision) 
+#define SERVER_COUNTDOWN 200 // 200 frames in total so with 1 frame per second we get about 3 minutes of game time (Contact me for more info about fps decision)
 //End: Constant Definitions
 
 
@@ -67,14 +67,14 @@ int main(int argc, char **argv) {
 
 
     Player player1 = {-1, 0, {{0, 0}}, 'D', 0};
-    Player player2 = {-1, 0, {{0, 0}}, 'D', 0}; 
-    Player player3 = {-1, 0, {{0, 0}}, 'D', 0}; 
-    Player player4 = {-1, 0, {{0, 0}}, 'D', 0}; 
+    Player player2 = {-1, 0, {{0, 0}}, 'D', 0};
+    Player player3 = {-1, 0, {{0, 0}}, 'D', 0};
+    Player player4 = {-1, 0, {{0, 0}}, 'D', 0};
     Player player5 = {-1, 0, {{0, 0}}, 'D', 0};
 
     Player players[MAX_PLAYERS]={player1, player2, player3, player4, player5}; // Array to store player information
     int player_count = 0;
-    
+
     int spawn_position[2] = {0, 0}; // Array to store the initial position of a new spawn (player or food particle), spawn_position[0] is the x-coordinate and spawn_position[1] is the y-coordinate
     //End: Define Game Variables
 
@@ -119,7 +119,7 @@ int main(int argc, char **argv) {
     initialize_spawn_map(spawn_map, rows, cols);
     //End: Prepare Game Setup
 
-    
+
     //Start Game Loop
     while (countdown != 0){
 
@@ -169,7 +169,7 @@ int main(int argc, char **argv) {
                 players[player_to_replace].body_length = 1;
                 players[player_to_replace].player_body[0][0] = spawn_position[0]; // Set the x-coordinate of the player's snake head to the x-coordinate of the spawn position
                 players[player_to_replace].player_body[0][1] = spawn_position[1]; // Set the y-coordinate of the player's snake head to the y-coordinate of the spawn position
-                players[player_to_replace].direction = 'D'; // By default, the player's snake will start moving to the right 
+                players[player_to_replace].direction = 'D'; // By default, the player's snake will start moving to the right
                 players[player_to_replace].alive = 1; // Set the player's alive status to 1 (alive)
 
                 player_count++; // Increment the player count
@@ -182,7 +182,7 @@ int main(int argc, char **argv) {
 
         //Start: Add Player Sockets to File Descriptor
         for (int i = 0; i < MAX_PLAYERS; i++){
-            if (players[i].socket >= 0){ 
+            if (players[i].socket >= 0){
                 FD_SET(players[i].socket, &player_move_fds); // Add each player's socket to the file descriptor set for monitoring player action requests
         }
         }
@@ -216,7 +216,7 @@ int main(int argc, char **argv) {
         }
         // End: Handle Player Moves
 
-        
+
         //Start: Spawn Food
         for (int i = 0; i < 2; i++){
             spawn_particle(spawn_map, current_game_map, rows, cols, spawn_position);
@@ -224,7 +224,7 @@ int main(int argc, char **argv) {
         //End: Spawn Food
 
         print_game_map(current_game_map, rows, cols); // Print the current state of the game map to the players
-    
+
     countdown--;
     sleep(1);
     }
