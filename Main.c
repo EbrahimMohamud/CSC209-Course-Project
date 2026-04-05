@@ -16,8 +16,8 @@
 
 
 //Start: Constant Definitions
-#define MAP_LENGTH 100
-#define MAP_WIDTH 100
+#define MAP_LENGTH 45
+#define MAP_WIDTH 110
 #define MAX_SNAKE_LENGTH 30
 #define MAX_PLAYERS 5
 #define SERVER_COUNTDOWN 200 // 200 frames in total so with 1 frame per second we get about 3 minutes of game time (Contact me for more info about fps decision)
@@ -91,8 +91,8 @@ void spawn_particle(int (*game_map)[MAP_WIDTH], int rows, int cols) {
     // repeat until (x,y) corresponds to unoccupied coordinate
     int x, y;
     do {
-        x = rand() % MAP_WIDTH;
-        y = rand() % MAP_LENGTH;
+        x = rand() % cols;
+        y = rand() % rows;
     } while (game_map[y][x] != EMPTY_TILE);
 
     // now (x,y) corresponds to unoccupied coordinate on game_map
@@ -110,8 +110,8 @@ void spawn_player(int (*game_map)[MAP_WIDTH], int rows, int cols, Player *player
     // repeat until (x,y) corresponds to unoccupied coordinate
     int x, y;
     do {
-        x = rand() % MAP_WIDTH;
-        y = rand() % MAP_LENGTH;
+        x = rand() % cols;
+        y = rand() % rows;
     } while (game_map[y][x] != EMPTY_TILE);
 
     // now (x,y) corresponds to unoccupied coordinate on game_map
@@ -173,7 +173,7 @@ void kill_snake_body(int game_map[MAP_LENGTH][MAP_WIDTH], Player *player, int *p
 /*  Helper function to shift the body of the snake in the direction it is travelling. Moves every element of the snake one unit forward.
     Map updated accordingly.
 */
-void shift_snake_body(int game_map[MAP_LENGTH][MAP_WIDTH], Player *player) {
+void shift_snake_body(int game_map[MAP_LENGTH][MAP_WIDTH], Player *player, int rows, int cols) {
     // get head of snake
     int head[2];
 
@@ -182,8 +182,8 @@ void shift_snake_body(int game_map[MAP_LENGTH][MAP_WIDTH], Player *player) {
 
     // calculate next coordinate for head of snake
     int next_coord[2];
-    next_coord[0] = wrap_index(head[0] + player->direction[0], MAP_WIDTH);
-    next_coord[1] = wrap_index(head[1] + player->direction[1], MAP_LENGTH);
+    next_coord[0] = wrap_index(head[0] + player->direction[0], cols);
+    next_coord[1] = wrap_index(head[1] + player->direction[1], rows);
 
     int prev_coord[2];
     int temp_coord[2];
@@ -253,9 +253,9 @@ void update_player_body(int (*game_map)[MAP_WIDTH], int rows, int cols, Player *
 
     // calculate next coordinate for head of snake
     int next_coord[2];
-    next_coord[0] = wrap_index(head[0] + player->direction[0], MAP_WIDTH);
-    next_coord[1] = wrap_index(head[1] + player->direction[1], MAP_LENGTH);
-    
+    next_coord[0] = wrap_index(head[0] + player->direction[0], cols);
+    next_coord[1] = wrap_index(head[1] + player->direction[1], rows);
+
     // if next coordinate has food - snake moves forward and grows longer
     if (game_map[next_coord[1]][next_coord[0]] == FOOD) {
         if (player->body_length < MAX_SNAKE_LENGTH) {
@@ -267,7 +267,7 @@ void update_player_body(int (*game_map)[MAP_WIDTH], int rows, int cols, Player *
         temp[1] = player->player_body[player->body_length - 1][1];
 
         // 2) move every element of the snake one unit forward
-        shift_snake_body(game_map, player);
+        shift_snake_body(game_map, player, rows, cols);
         
         // 3) next coordinate is food, so increment size of snake
         player->body_length++;
@@ -281,7 +281,7 @@ void update_player_body(int (*game_map)[MAP_WIDTH], int rows, int cols, Player *
     }
         else {
             // if snake is already at max length, just move the snake forward without growing
-            shift_snake_body(game_map, player);
+            shift_snake_body(game_map, player, rows, cols);
         }
     }
 
@@ -289,7 +289,7 @@ void update_player_body(int (*game_map)[MAP_WIDTH], int rows, int cols, Player *
     else if (game_map[next_coord[1]][next_coord[0]] == EMPTY_TILE) {
         
         // move every element of the snake one unit forward
-        shift_snake_body(game_map, player);
+        shift_snake_body(game_map, player, rows, cols);
 
     } 
     
@@ -334,6 +334,11 @@ void print_game_map(int game_map[MAP_LENGTH][MAP_WIDTH], int rows, int cols) {
         printf("\n");
 
 	}
+    printf("\n"); // print new line at the end of the game map for better readability
+    for (int i = 0; i < cols; i++) {
+    printf("-"); // print a separator after the game map for better readability
+    }
+    printf("\n");
 }
 
 
@@ -345,8 +350,8 @@ int main() {
 
     //Start: Define Game Variables
     int current_game_map[MAP_LENGTH][MAP_WIDTH]; // "." for free tile, "o" for snake body, "x" for snake head, "s" for food
-    int rows = MAP_WIDTH;
-    int cols = MAP_LENGTH;
+    int rows = MAP_LENGTH;
+    int cols = MAP_WIDTH;
     int countdown = SERVER_COUNTDOWN; // Countdown for the game loop, decrements every frame and when it reaches 0 the game ends
 
 
